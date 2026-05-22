@@ -668,6 +668,7 @@ add_bullet(
     frame_width,
     "Brigham Young University–Idaho — B.S. Computer Information Technology",
 )
+story.append(Spacer(1, JOB_BLOCK_SPACER))
 
 add_section_heading(story, frame_width, "PROJECTS")
 story.append(
