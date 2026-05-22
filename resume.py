@@ -63,6 +63,16 @@ def _page_header_contact_style() -> ParagraphStyle:
     )
 
 
+BODY_FONT_SIZE = 10
+BODY_LEADING = 11.5
+BULLET_SPACE_AFTER = 3
+JOB_BLOCK_SPACER = 7
+SECTION_PRE_SPACER = 3
+SKILLS_TAIL_SPACER = 2
+# Roles that ended before this year get no bullets (see PRIOR_EXPERIENCE_JOBS).
+# 2019 ≈ 10-year window in 2026; raises cutoff to move older roles (e.g. Premier) to prior-only.
+BULLET_CUTOFF_YEAR = 2019
+
 SECTION_TITLE_LARGE = 11
 SECTION_TITLE_SMALL = 8  # small caps: rest of letters ~73% of first
 # HRFlowable ignores spaceBefore/spaceAfter; control gaps via table padding instead.
@@ -96,8 +106,8 @@ def format_section_title(title: str) -> str:
 skills_style = _base_style(
     name="Skills",
     fontName="Helvetica",
-    fontSize=9.5,
-    leading=10.5,
+    fontSize=BODY_FONT_SIZE,
+    leading=BODY_LEADING,
     spaceAfter=1,
 )
 
@@ -109,8 +119,8 @@ def _bullet_marker_style() -> ParagraphStyle:
     return _base_style(
         name="BulletMarker",
         fontName="Helvetica",
-        fontSize=9.5,
-        leading=10.5,
+        fontSize=BODY_FONT_SIZE,
+        leading=BODY_LEADING,
         alignment=TA_RIGHT,
         leftIndent=0,
         rightIndent=0,
@@ -121,11 +131,11 @@ def _bullet_text_style() -> ParagraphStyle:
     return _base_style(
         name="BulletText",
         fontName="Helvetica",
-        fontSize=9.5,
-        leading=10.5,
+        fontSize=BODY_FONT_SIZE,
+        leading=BODY_LEADING,
         leftIndent=0,
         rightIndent=0,
-        spaceAfter=3,
+        spaceAfter=BULLET_SPACE_AFTER,
     )
 
 
@@ -215,9 +225,21 @@ def _job_tech_style() -> ParagraphStyle:
     return _base_style(
         name="JobTech",
         fontName="Helvetica",
-        fontSize=8.5,
-        leading=11,
+        fontSize=BODY_FONT_SIZE,
+        leading=BODY_LEADING,
         textColor=colors.HexColor("#475569"),
+        leftIndent=0,
+        rightIndent=0,
+        spaceAfter=2,
+    )
+
+
+def _job_links_style() -> ParagraphStyle:
+    return _base_style(
+        name="JobLinks",
+        fontName="Helvetica",
+        fontSize=BODY_FONT_SIZE,
+        leading=BODY_LEADING,
         leftIndent=0,
         rightIndent=0,
         spaceAfter=2,
@@ -266,11 +288,15 @@ def add_page_header(story, frame_width: float) -> None:
     inner_w = _inner_width(frame_width)
     left_w = min(2.25 * inch, int(inner_w * 0.32))
     right_w = int(inner_w) - left_w
-    contact = (
-        "(208) 360-9649 &middot; ryanwillmore@gmail.com &middot; "
-        "linkedin.com/in/ryan-willmore"
+    contact_markup = (
+        "<b>"
+        '<a href="tel:+12083609649" color="black">(208) 360-9649</a>'
+        " &middot; "
+        '<a href="mailto:ryanwillmore@gmail.com" color="black">ryanwillmore@gmail.com</a>'
+        " &middot; "
+        '<a href="https://www.linkedin.com/in/ryan-willmore" color="black">'
+        "linkedin.com/in/ryan-willmore</a></b>"
     )
-    contact_markup = f"<b>{contact}</b>"
     row = Table(
         [[
             Paragraph("<b>Ryan Willmore</b>", _page_header_name_style()),
@@ -296,7 +322,7 @@ def add_page_header(story, frame_width: float) -> None:
 
 def add_section_heading(story, frame_width: float, title: str) -> None:
     inner_w = _inner_width(frame_width)
-    story.append(Spacer(1, 4))
+    story.append(Spacer(1, SECTION_PRE_SPACER))
     title_para = Paragraph(format_section_title(title), section_style)
     rule = HRFlowable(
         width=inner_w,
@@ -341,58 +367,103 @@ def build_job_block(
     dates: str,
     bullets: list[str],
     tech_stack: str | None = None,
+    links_line: str | None = None,
 ) -> list:
     inner_w = _inner_width(frame_width)
     header = _job_header_table(inner_w, company, location, role, dates)
     block = [_inset_wrapper(header, frame_width)]
+    if links_line:
+        block.append(
+            _inset_wrapper(Paragraph(links_line, _job_links_style()), frame_width)
+        )
     if tech_stack:
         block.append(
             _inset_wrapper(Paragraph(tech_stack, _job_tech_style()), frame_width)
         )
     for text in bullets:
         block.append(_bullet_row(frame_width, text))
-    block.append(Spacer(1, 7))
+    block.append(Spacer(1, JOB_BLOCK_SPACER))
     return block
+
+
+def build_prior_experience_line(
+    frame_width: float,
+    company: str,
+    role: str,
+    dates: str,
+) -> Table:
+    """Single line: Company — Title (left), dates (right). No bullets."""
+    inner_w = _inner_width(frame_width)
+    left_w, right_w = _job_col_widths(inner_w)
+    left_style = _job_header_left_style()
+    right_style = _job_header_right_style()
+    row = Table(
+        [[
+            Paragraph(f"<b>{company}</b> — {role}", left_style),
+            Paragraph(dates, right_style),
+        ]],
+        colWidths=[left_w, right_w],
+        hAlign="LEFT",
+    )
+    row.setStyle(
+        TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ])
+    )
+    return _inset_wrapper(row, frame_width)
 
 
 SKILL_CATEGORIES = {
     "Languages": "TypeScript, JavaScript, C#, SQL",
     "Frontend": "React, HTML, CSS, Angular",
-    "Backend & APIs": "Node.js, Express.js, .NET, GraphQL, REST APIs, Microservices",
+    "Backend & APIs": "Node.js, Express.js, REST APIs, Microservices, GraphQL, .NET",
     "Cloud & Infrastructure": (
-        "AWS (Lambda, API Gateway, Amazon Bedrock AgentCore), Azure Functions, Serverless"
+        "Amazon Bedrock AgentCore, AWS (Lambda, API Gateway), Azure Functions, Serverless"
     ),
     "Databases": "Postgres, DynamoDB, MongoDB, Cosmos DB",
     "Tools": "Datadog, Jest, Git, CI/CD",
 }
 
-RECENT_JOBS = [
+EXPERIENCE_JOBS = [
     {
         "company": "Pie Insurance",
         "location": "Remote",
         "role": "Senior Software Engineer",
         "dates": "January 2025 – May 2026",
+        "end_year": 2026,
         "tech_stack": (
-            "TypeScript &middot; AWS &middot; GraphQL &middot; Node.js &middot; Express.js "
-            "&middot; Serverless &middot; DynamoDB &middot; Datadog &middot; Postgres"
+            "Amazon Bedrock AgentCore &middot; AWS &middot; TypeScript &middot; GraphQL "
+            "&middot; Node.js &middot; Express.js &middot; DynamoDB "
+            "&middot; Datadog &middot; Postgres"
         ),
         "bullets": [
             (
                 "Led development of an AI-powered Rate Update Agent using Amazon Bedrock AgentCore to "
                 "automate rate file processing and GitHub PR generation from Jira tickets, replacing 40+ "
-                "manual updates per year that each consumed days of developer time with ~10-minute automated runs"
+                "manual updates per year that each consumed days of developer time with ~4-minute automated runs"
             ),
             (
-                "Oversaw migration of a Go-based microservice to TypeScript/Node.js, including API Gateway "
-                "integration, DynamoDB caching, smoke tests, SDK generation, and migration documentation"
+                "Senior engineer on pricing team, owning TypeScript/AWS serverless "
+                "services, GraphQL APIs, and production pricing workflows in Kanban delivery cadence"
             ),
             (
-                "Managed pricing infrastructure for Workers' Comp and Commercial Auto using a "
-                "TypeScript/AWS serverless stack"
+                "Oversaw migration of Go-based microservice to TypeScript/Node.js with API Gateway "
+                "integration, DynamoDB caching, smoke tests, SDK generation, and migration documentation, "
+                "reducing operational complexity across pricing services"
             ),
             (
-                "Implemented rating and billing enhancements across multiple repositories, APIs, and "
-                "GraphQL schemas under tight delivery timelines"
+                "Managed pricing infrastructure for Workers' Comp and Commercial Auto on TypeScript/AWS "
+                "serverless stack, supporting rate changes, billing integrations, and production observability "
+                "via Datadog"
+            ),
+            (
+                "Implemented pricing enhancements across multiple repositories, REST/GraphQL APIs, "
+                "and schemas under tight delivery timelines, unblocking a billing effort that would "
+                "save the company thousands of dollars per day"
             ),
         ],
     },
@@ -401,26 +472,29 @@ RECENT_JOBS = [
         "location": "Remote",
         "role": "Software Engineer",
         "dates": "August 2022 – November 2024",
+        "end_year": 2024,
         "tech_stack": (
             "React &middot; TypeScript &middot; MongoDB &middot; Node.js "
             "&middot; Express.js &middot; Figma"
         ),
         "bullets": [
             (
-                "Advocated for user-centric features throughout the discovery, design, and "
-                "implementation phases"
+                "Full-stack engineer on SaaS retrospective and agile collaboration product, delivering "
+                "React/TypeScript UI and Node.js/Express/MongoDB features with product and design partners "
+                "through discovery, delivery, and production support"
             ),
             (
-                "Collaborated with product manager and designer to ensure end-to-end feature delivery"
+                "Partnered with product manager and designer on end-to-end feature delivery, translating "
+                "user research into scoped stories, UI specs, and shippable increments across core workflow "
+                "surfaces"
             ),
             (
-                "Played a key role in the migration to an updated design system by replacing legacy components"
+                "Drove migration to updated design system by replacing legacy React components, improving "
+                "UI consistency and reducing design-debt friction for new feature development"
             ),
             (
-                "Achieved significant reduction in application bugs, enhancing stability and user experience"
-            ),
-            (
-                "Showcased front-end skills while contributing to back-end projects effectively"
+                "Reduced recurring application defects through targeted refactors, test coverage, and "
+                "component standardization, improving stability and customer-facing reliability"
             ),
         ],
     },
@@ -429,26 +503,33 @@ RECENT_JOBS = [
         "location": "Remote",
         "role": "Full Stack Developer",
         "dates": "October 2019 – August 2022",
+        "end_year": 2022,
         "tech_stack": (
             "TypeScript &middot; Node.js &middot; Azure Functions &middot; C# "
             "&middot; .NET &middot; Cosmos DB"
         ),
         "bullets": [
             (
-                "Contributed to the design, development, testing, and deployment of RyanMail, an "
-                "event-driven microservices app facilitating mass physical mail sending through a "
-                "third-party service"
-            ),
-            "Utilized NodeJS Azure Functions to establish a REST API for RyanMail",
-            (
-                "Managed PDF storage and processing for RyanMail using Azure Functions, Azure Queue "
-                "Storage, and Azure Blob Storage"
+                "Full-stack developer on RyanMail event-driven microservices platform for enterprise tax "
+                "services, building TypeScript Node.js Azure Functions, C#/.NET services, and Cosmos DB "
+                "integrations supporting high-volume physical mail workflows"
             ),
             (
-                "Collaborated with various teams to integrate the RyanMail client with another product"
+                "Designed, built, tested, and deployed RyanMail capabilities end-to-end, coordinating REST APIs, "
+                "queue-driven processing, and third-party mail provider integrations used by internal operations "
+                "teams"
             ),
             (
-                "Implemented Azure ARM Templates to efficiently create and deploy the RyanMail infrastructure"
+                "Built Node.js Azure Functions REST API and PDF pipeline using Queue Storage and Blob Storage, "
+                "enabling reliable document generation, storage, and retrieval across distributed mail batches"
+            ),
+            (
+                "Integrated RyanMail client with adjacent product teams and platforms, aligning authentication, "
+                "configuration, and deployment patterns for cross-product adoption"
+            ),
+            (
+                "Authored Azure ARM templates for repeatable RyanMail infrastructure provisioning and deployment, "
+                "shortening environment setup and reducing manual configuration errors"
             ),
         ],
     },
@@ -457,21 +538,26 @@ RECENT_JOBS = [
         "location": "Remote",
         "role": "Software Engineer",
         "dates": "January 2018 – October 2019",
+        "end_year": 2019,
         "tech_stack": "React &middot; TypeScript &middot; .NET Core &middot; C#",
         "bullets": [
             (
-                "Collaborated with product team and developers to execute user story-driven solutions"
-            ),
-            "Developed frontend using React and Typescript, and backend with C#",
-            (
-                "Architected microservices like email and document generation for enhanced platform structure"
+                "Software engineer on mortgage document technology platform, building React/TypeScript frontends "
+                "and C#/.NET Core microservices for document generation, email delivery, and lender integrations "
+                "in Agile team"
             ),
             (
-                "Designed tool to compare legacy and new document generation outputs for bug identification"
+                "Delivered user story-driven features with product and engineering peers across React UI, service "
+                "layer APIs, and PDF document workflows, participating in code reviews, sprint planning, and "
+                "retrospectives on compliance-sensitive releases"
             ),
             (
-                "Engaged in agile team practices such as code reviews, stand-ups, planning, backlog "
-                "grooming, and retrospectives"
+                "Architected email and document generation microservices, decomposing legacy monolith capabilities "
+                "into independently deployable services and improving platform maintainability"
+            ),
+            (
+                "Built comparison tooling for legacy vs. new document generation outputs, accelerating defect "
+                "detection during migrations and reducing production document mismatches"
             ),
         ],
     },
@@ -480,26 +566,54 @@ RECENT_JOBS = [
         "location": "Remote",
         "role": "Software Developer",
         "dates": "January 2012 – January 2018",
-        "tech_stack": "C# &middot; ASP.NET &middot; SQL &middot; JavaScript &middot; AWS &middot; AngularJS",
-        "bullets": [
-            (
-                "Developed customer-facing C# and ASP.NET web application for aftermarket automotive parts "
-                "ordering, displaying vehicle and product data and building and consuming REST APIs across "
-                "customer and internal workflows"
-            ),
-            (
-                "Built internal tooling for shipping operations and order processing, including REST API "
-                "integrations streamlining eBay and Amazon orders into company order systems"
-            ),
-        ],
+        "end_year": 2018,
+        "tech_stack": None,
+        "bullets": [],
     },
 ]
 
-PROJECTS_TEXT = (
-    "Willmore Lumber Website — Designed and developed a responsive marketing website for a "
-    "family-owned lumber business featuring custom product showcases, SEO optimization, and "
-    "brand-aligned UI/UX."
-)
+PRIOR_EXPERIENCE_JOBS = [
+    job
+    for job in EXPERIENCE_JOBS
+    if job["end_year"] < BULLET_CUTOFF_YEAR
+]
+
+RECENT_JOBS = [
+    job for job in EXPERIENCE_JOBS if job["end_year"] >= BULLET_CUTOFF_YEAR
+]
+
+PROJECT_JOB = {
+    "company": "Willmore Lumber",
+    "location": "Personal Project",
+    "role": "Marketing Website",
+    "links_line": (
+        '<a href="https://willmorelumber.com" color="black">willmorelumber.com</a>'
+        ' &middot; '
+        '<a href="https://github.com/ecuaryan/willmore-lumber" color="black">'
+        "github.com/ecuaryan/willmore-lumber</a>"
+    ),
+    "dates": "",
+    "tech_stack": (
+        "Next.js 15 &middot; React 19 &middot; TypeScript &middot; Material UI "
+        "&middot; Swiper &middot; GitHub Pages &middot; GitHub Actions"
+    ),
+    "bullets": [
+        (
+            "Built marketing website for family-run lumber mill (50+ years in business per site content), using "
+            "Next.js 15 App Router with static export, 17 routed pages across products, services, pricing, "
+            "gallery, and contact, and responsive MUI navigation with drawer-based nested menus"
+        ),
+        (
+            "Delivered custom MUI theme and shared layout components, home-page Swiper product showcase and "
+            "testimonial carousels, lazy-loaded gallery with Google Photos link, and GitHub Actions pipeline "
+            "deploying static build to GitHub Pages at willmorelumber.com"
+        ),
+        (
+            "Configured root metadata, robots.txt, web app manifest, and mixed WebP/JPEG assets with lazy loading, "
+            "producing maintainable static site without CMS or backend for customers browsing on mobile devices"
+        ),
+    ],
+}
 
 doc = SimpleDocTemplate(
     str(pdf_path),
@@ -517,7 +631,7 @@ story = []
 add_page_header(story, frame_width)
 
 add_skills_section(story, SKILL_CATEGORIES)
-story.append(Spacer(1, 2))
+story.append(Spacer(1, SKILLS_TAIL_SPACER))
 
 add_section_heading(story, frame_width, "EXPERIENCE")
 for job in RECENT_JOBS:
@@ -535,6 +649,19 @@ for job in RECENT_JOBS:
         )
     )
 
+if PRIOR_EXPERIENCE_JOBS:
+    add_section_heading(story, frame_width, "PRIOR EXPERIENCE")
+    for job in PRIOR_EXPERIENCE_JOBS:
+        story.append(
+            build_prior_experience_line(
+                frame_width,
+                job["company"],
+                job["role"],
+                job["dates"],
+            )
+        )
+    story.append(Spacer(1, 2))
+
 add_section_heading(story, frame_width, "EDUCATION")
 add_bullet(
     story,
@@ -543,7 +670,20 @@ add_bullet(
 )
 
 add_section_heading(story, frame_width, "PROJECTS")
-add_bullet(story, frame_width, PROJECTS_TEXT)
+story.append(
+    KeepTogether(
+        build_job_block(
+            frame_width,
+            PROJECT_JOB["company"],
+            PROJECT_JOB["location"],
+            PROJECT_JOB["role"],
+            PROJECT_JOB["dates"],
+            PROJECT_JOB["bullets"],
+            PROJECT_JOB.get("tech_stack"),
+            PROJECT_JOB.get("links_line"),
+        )
+    )
+)
 
 doc.build(story)
 
