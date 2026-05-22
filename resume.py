@@ -424,7 +424,7 @@ SKILL_CATEGORIES = {
     "Cloud & Infrastructure": (
         "Amazon Bedrock AgentCore, AWS (Lambda, API Gateway), Azure Functions, Serverless"
     ),
-    "Databases": "Postgres, DynamoDB, MongoDB, Cosmos DB",
+    "Databases": "DynamoDB, Postgres, MongoDB, Cosmos DB",
     "Tools": "Datadog, Jest, Git, CI/CD",
 }
 
