@@ -535,7 +535,7 @@ EXPERIENCE_JOBS = [
     },
     {
         "company": "Docutech",
-        "location": "Remote",
+        "location": "",
         "role": "Software Engineer",
         "dates": "January 2018 – October 2019",
         "end_year": 2019,
@@ -563,7 +563,7 @@ EXPERIENCE_JOBS = [
     },
     {
         "company": "Premier Performance Products",
-        "location": "Remote",
+        "location": "",
         "role": "Software Developer",
         "dates": "January 2012 – January 2018",
         "end_year": 2018,
