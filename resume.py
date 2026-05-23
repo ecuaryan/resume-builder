@@ -599,7 +599,7 @@ PROJECT_JOB = {
     ),
     "bullets": [
         (
-            "Built marketing website for family-run lumber mill (50+ years in business per site content), using "
+            "Built marketing website for family-run lumber mill (50+ years in business), using "
             "Next.js 15 App Router with static export, 17 routed pages across products, services, pricing, "
             "gallery, and contact, and responsive MUI navigation with drawer-based nested menus"
         ),
